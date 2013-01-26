@@ -23,6 +23,8 @@ public class QuadcopterControllerActivity extends Activity
     
     private BluetoothSocket mSocket;
     private SeekBar mSpeedSlider;
+    private SeekBar mAngleXSlider;
+    private SeekBar mAngleYSlider;
     
     private boolean mPowerOn;//TODO: delete
     
@@ -102,6 +104,38 @@ public class QuadcopterControllerActivity extends Activity
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {}
 		});
+        
+        mAngleXSlider = (SeekBar) findViewById(R.id.angle_x);
+        mAngleXSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
+        {
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar)
+			{
+				sendUpdate();
+			}
+			
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {}
+			
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {}
+		});
+        
+        mAngleYSlider = (SeekBar) findViewById(R.id.angle_y);
+        mAngleYSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
+        {
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar)
+			{
+				sendUpdate();
+			}
+			
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {}
+			
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {}
+		});
     }
     
     @Override
@@ -140,6 +174,9 @@ public class QuadcopterControllerActivity extends Activity
     	{
     		mSocket.getOutputStream().write(mPowerOn ? '1' : '0');
     		mSocket.getOutputStream().write(mSpeedSlider.getProgress());
+    		//TODO: send angles in less hacked way
+    		mSocket.getOutputStream().write(mAngleXSlider.getProgress() - 35);
+    		mSocket.getOutputStream().write(mAngleYSlider.getProgress() - 35);
     	}
     	catch (IOException e)
     	{

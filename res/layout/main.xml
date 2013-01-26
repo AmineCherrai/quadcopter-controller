@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:keepScreenOn="true">
     
     <Button
         android:layout_width="fill_parent"
@@ -20,6 +21,23 @@
         android:id="@+id/speed"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:max="100"/>
+        android:max="100"
+        android:paddingTop="20dp"/>
+    
+    <SeekBar
+        android:id="@+id/angle_x"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:max="70"
+        android:progress="35"
+        android:paddingTop="20dp"/>
+    
+    <SeekBar
+        android:id="@+id/angle_y"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:max="70"
+        android:progress="35"
+        android:paddingTop="20dp"/>
     
 </LinearLayout>
