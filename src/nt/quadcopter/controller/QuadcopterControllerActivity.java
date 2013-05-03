@@ -2,7 +2,12 @@ package nt.quadcopter.controller;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
+
+import nt.quadcopter.controller.joystick.JoystickMovedListener;
+import nt.quadcopter.controller.joystick.JoystickView;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -23,10 +28,11 @@ public class QuadcopterControllerActivity extends Activity
     
     private BluetoothSocket mSocket;
     private SeekBar mSpeedSlider;
-    private SeekBar mAngleXSlider;
-    private SeekBar mAngleYSlider;
-    
-    private boolean mPowerOn;//TODO: delete
+    private JoystickView mJoystick;
+    private boolean mPowerOn;
+    private int mXRotation, mYRotation, mSpeed;
+    private Timer mTimer;
+    private boolean mUpdateNeeded;
     
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -35,8 +41,45 @@ public class QuadcopterControllerActivity extends Activity
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.main);
         
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        try
+        {
+        	connect();
+        }
+        catch (IOException e)
+        {
+        	new AlertDialog.Builder(this)
+            .setMessage(e.getMessage())
+            .setNeutralButton("OK", new OnClickListener()
+            {
+                @Override
+                public void onClick(DialogInterface dialog, int which)
+                {
+                    QuadcopterControllerActivity.this.finish();
+                }
+            }).show();
+        }
         
+        mSpeedSlider = (SeekBar) findViewById(R.id.speed);
+        mJoystick = (JoystickView) findViewById(R.id.joystick);
+        mTimer = new Timer();
+        mTimer.schedule(new TimerTask()
+        {
+			@Override
+			public void run() {
+				if(mUpdateNeeded)
+				{
+					QuadcopterControllerActivity.this.sendUpdate();
+					mUpdateNeeded = false;
+				}
+			}
+        }, 0, 1000);
+        
+        initializeViewListeners();
+    }
+    
+    private void connect() throws IOException
+    {
+    	BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         BluetoothDevice device = null;
         
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
@@ -51,100 +94,65 @@ public class QuadcopterControllerActivity extends Activity
         
         if(device == null)
         {
-            new AlertDialog.Builder(this)
-                    .setMessage("Device Not Found")
-                    .setNeutralButton("OK", new OnClickListener()
-                    {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which)
-                        {
-                            QuadcopterControllerActivity.this.finish();
-                        }
-                    }).show();
+            throw new IOException("Device Not Found");
         }
         else
         {
             final String SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB";
             UUID uuid = UUID.fromString(SPP_UUID);
-            
-            try
-            {
-                mSocket = device.createRfcommSocketToServiceRecord(uuid);
-                mSocket.connect();
-            }
-            catch (IOException e)
-            {
-                new AlertDialog.Builder(this)
-                        .setTitle("Error connecting to device")
-                        .setMessage(e.getMessage())
-                        .setNeutralButton("OK", new OnClickListener()
-                        {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which)
-                            {
-                                QuadcopterControllerActivity.this.finish();
-                            }
-                        })
-                        .show();
-            }
+
+            mSocket = device.createRfcommSocketToServiceRecord(uuid);
+            mSocket.connect();
         }
-        
-        mSpeedSlider = (SeekBar) findViewById(R.id.speed);
-        mSpeedSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
+    }
+    
+    private void initializeViewListeners()
+    {
+    	mSpeedSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
         {
+    		@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {}
+    		
 			@Override
-			public void onStopTrackingTouch(SeekBar seekBar)
+			public void onStopTrackingTouch(SeekBar seekBar) {}
+			
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+				mSpeed = progress;
+				
+				mUpdateNeeded = true;
+			}
+		});
+    	
+    	mJoystick.setOnJostickMovedListener(new JoystickMovedListener()
+    	{
+			@Override
+			public void OnMoved(int pan, int tilt)
 			{
-				sendUpdate();
+				mXRotation = tilt * 4;
+				mYRotation = pan * 4;
+				
+				mUpdateNeeded = true;
 			}
 			
 			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {}
+			public void OnReleased() {}
 			
 			@Override
-			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {}
-		});
-        
-        mAngleXSlider = (SeekBar) findViewById(R.id.angle_x);
-        mAngleXSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
-        {
-			@Override
-			public void onStopTrackingTouch(SeekBar seekBar)
-			{
-				sendUpdate();
-			}
-			
-			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {}
-			
-			@Override
-			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {}
-		});
-        
-        mAngleYSlider = (SeekBar) findViewById(R.id.angle_y);
-        mAngleYSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
-        {
-			@Override
-			public void onStopTrackingTouch(SeekBar seekBar)
-			{
-				sendUpdate();
-			}
-			
-			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {}
-			
-			@Override
-			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {}
-		});
+			public void OnReturnedToCenter() {}
+    	});
     }
     
     @Override
     protected void onDestroy()
     {
         super.onDestroy();
+        mTimer.cancel();
         
         if(mSocket != null)
         {
+        	sendOff(null);
+        	
         	try
         	{
         		mSocket.close();
@@ -156,7 +164,7 @@ public class QuadcopterControllerActivity extends Activity
         }
     }
     
-    public void sendOn(View button)
+	public void sendOn(View button)
     {
     	mPowerOn = true;
     	sendUpdate();
@@ -168,20 +176,18 @@ public class QuadcopterControllerActivity extends Activity
     	sendUpdate();
     }
     
-    public void sendUpdate()
-    {
-    	try
-    	{
-    		mSocket.getOutputStream().write(mPowerOn ? '1' : '0');
-    		mSocket.getOutputStream().write(mSpeedSlider.getProgress());
-    		//TODO: send angles in less hacked way
-    		mSocket.getOutputStream().write(mAngleXSlider.getProgress() - 35);
-    		mSocket.getOutputStream().write(mAngleYSlider.getProgress() - 35);
-    	}
-    	catch (IOException e)
-    	{
-    		e.printStackTrace();
-    	}
-    }
-    
+	private void sendUpdate()
+	{
+		try
+		{
+			mSocket.getOutputStream().write(mPowerOn ? '1' : '0');
+			mSocket.getOutputStream().write(mSpeed);
+			mSocket.getOutputStream().write(mXRotation);
+			mSocket.getOutputStream().write(mYRotation);
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
 }

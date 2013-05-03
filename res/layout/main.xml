@@ -1,43 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:orientation="vertical"
     android:keepScreenOn="true">
     
     <Button
-        android:layout_width="fill_parent"
+        android:id="@+id/onButton"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
         android:text="ON"
         android:onClick="sendOn"/>
     
     <Button
-        android:layout_width="fill_parent"
+        android:id="@+id/offButton"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_above="@id/onButton"
         android:text="OFF"
         android:onClick="sendOff"/>
     
-    <SeekBar
+    <nt.quadcopter.controller.VerticalSeekBar
         android:id="@+id/speed"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:max="100"
-        android:paddingTop="20dp"/>
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_alignParentLeft="true"
+        android:max="100"/>
+        
+    <nt.quadcopter.controller.joystick.JoystickView
+        android:id="@+id/joystick"
+        android:layout_width="250dp"
+        android:layout_height="250dp"
+        android:layout_centerInParent="true"/>
     
-    <SeekBar
-        android:id="@+id/angle_x"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:max="70"
-        android:progress="35"
-        android:paddingTop="20dp"/>
-    
-    <SeekBar
-        android:id="@+id/angle_y"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:max="70"
-        android:progress="35"
-        android:paddingTop="20dp"/>
-    
-</LinearLayout>
+</RelativeLayout>
