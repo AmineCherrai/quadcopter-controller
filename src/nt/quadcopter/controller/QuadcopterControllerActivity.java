@@ -25,7 +25,7 @@ import android.widget.SeekBar.OnSeekBarChangeListener;
 public class QuadcopterControllerActivity extends Activity
 {
     private static final String BLUETOOTH_DEVICE_NAME = "Quadcopter-2C5B";
-    
+
     private BluetoothSocket mSocket;
     private SeekBar mSpeedSlider;
     private JoystickView mJoystick;
@@ -33,66 +33,68 @@ public class QuadcopterControllerActivity extends Activity
     private int mXRotation, mYRotation, mSpeed;
     private Timer mTimer;
     private boolean mUpdateNeeded;
-    
+
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.main);
-        
+
         try
         {
-        	connect();
+            connect();
         }
         catch (IOException e)
         {
-        	new AlertDialog.Builder(this)
-            .setMessage(e.getMessage())
-            .setNeutralButton("OK", new OnClickListener()
-            {
-                @Override
-                public void onClick(DialogInterface dialog, int which)
-                {
-                    QuadcopterControllerActivity.this.finish();
-                }
-            }).show();
+            new AlertDialog.Builder(this)
+                    .setMessage(e.getMessage())
+                    .setNeutralButton("OK", new OnClickListener()
+                            {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which)
+                                {
+                                    QuadcopterControllerActivity.this.finish();
+                                }
+                            })
+                    .show();
         }
-        
+
         mSpeedSlider = (SeekBar) findViewById(R.id.speed);
         mJoystick = (JoystickView) findViewById(R.id.joystick);
         mTimer = new Timer();
         mTimer.schedule(new TimerTask()
         {
-			@Override
-			public void run() {
-				if(mUpdateNeeded)
-				{
-					QuadcopterControllerActivity.this.sendUpdate();
-					mUpdateNeeded = false;
-				}
-			}
+            @Override
+            public void run()
+            {
+                if (mUpdateNeeded)
+                {
+                    QuadcopterControllerActivity.this.sendUpdate();
+                    mUpdateNeeded = false;
+                }
+            }
         }, 0, 1000);
-        
+
         initializeViewListeners();
     }
-    
+
     private void connect() throws IOException
     {
-    	BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         BluetoothDevice device = null;
-        
+
         Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
-        for(BluetoothDevice pairedDevice : pairedDevices)
+        for (BluetoothDevice pairedDevice : pairedDevices)
         {
-            if(pairedDevice.getName().equals(BLUETOOTH_DEVICE_NAME))
+            if (pairedDevice.getName().equals(BLUETOOTH_DEVICE_NAME))
             {
                 device = pairedDevice;
                 break;
             }
         }
-        
-        if(device == null)
+
+        if (device == null)
         {
             throw new IOException("Device Not Found");
         }
@@ -105,89 +107,90 @@ public class QuadcopterControllerActivity extends Activity
             mSocket.connect();
         }
     }
-    
+
     private void initializeViewListeners()
     {
-    	mSpeedSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
+        mSpeedSlider.setOnSeekBarChangeListener(new OnSeekBarChangeListener()
         {
-    		@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {}
-    		
-			@Override
-			public void onStopTrackingTouch(SeekBar seekBar) {}
-			
-			@Override
-			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-				mSpeed = progress;
-				
-				mUpdateNeeded = true;
-			}
-		});
-    	
-    	mJoystick.setOnJostickMovedListener(new JoystickMovedListener()
-    	{
-			@Override
-			public void OnMoved(int pan, int tilt)
-			{
-				mXRotation = tilt * 4;
-				mYRotation = pan * 4;
-				
-				mUpdateNeeded = true;
-			}
-			
-			@Override
-			public void OnReleased() {}
-			
-			@Override
-			public void OnReturnedToCenter() {}
-    	});
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser)
+            {
+                mSpeed = progress;
+
+                mUpdateNeeded = true;
+            }
+        });
+
+        mJoystick.setOnJostickMovedListener(new JoystickMovedListener()
+        {
+            @Override
+            public void OnMoved(int pan, int tilt)
+            {
+                mXRotation = tilt * 4;
+                mYRotation = pan * 4;
+
+                mUpdateNeeded = true;
+            }
+
+            @Override
+            public void OnReleased() {}
+
+            @Override
+            public void OnReturnedToCenter() {}
+        });
     }
-    
+
     @Override
     protected void onDestroy()
     {
         super.onDestroy();
         mTimer.cancel();
-        
-        if(mSocket != null)
+
+        if (mSocket != null)
         {
-        	sendOff(null);
-        	
-        	try
-        	{
-        		mSocket.close();
-        	}
-        	catch (IOException e)
-        	{
-        		//wtf is supposed to happen here?
-        	}
+            sendOff(null);
+
+            try
+            {
+                mSocket.close();
+            }
+            catch (IOException e)
+            {
+                // wtf is supposed to happen here?
+            }
         }
     }
-    
-	public void sendOn(View button)
+
+    public void sendOn(View button)
     {
-    	mPowerOn = true;
-    	sendUpdate();
+        mPowerOn = true;
+        sendUpdate();
     }
-    
+
     public void sendOff(View button)
     {
-    	mPowerOn = false;
-    	sendUpdate();
+        mPowerOn = false;
+        sendUpdate();
     }
-    
-	private void sendUpdate()
-	{
-		try
-		{
-			mSocket.getOutputStream().write(mPowerOn ? '1' : '0');
-			mSocket.getOutputStream().write(mSpeed);
-			mSocket.getOutputStream().write(mXRotation);
-			mSocket.getOutputStream().write(mYRotation);
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-	}
+
+    private void sendUpdate()
+    {
+        try
+        {
+            mSocket.getOutputStream().write(mPowerOn ? '1' : '0');
+            mSocket.getOutputStream().write(mSpeed);
+            mSocket.getOutputStream().write(mXRotation);
+            mSocket.getOutputStream().write(mYRotation);
+        }
+        catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
 }
